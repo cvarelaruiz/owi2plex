@@ -9,6 +9,12 @@ from datetime import datetime, timedelta
 
 
 def getAPIRoot(username, password, host, port):
+    """
+    Simple function to form the url of the OpenWebif server.
+    More info at:
+    
+    https://github.com/E2OpenPlugins/e2openplugin-OpenWebif/wiki/OpenWebif-API-documentation
+    """
     if username:
         url = 'http://{}:{}@{}:{}'.format(
                 username, password, host, port)
@@ -19,7 +25,15 @@ def getAPIRoot(username, password, host, port):
 
 def getBouquets(bouquet, api_root_url, list_bouquets):
     """
-    Function to get the list of bouquets
+    Function to get the list of bouquets from the OpenWebif API
+    
+    return_type: dict
+    return_model:
+        {
+            "bouquet_name_1": "sRef_1",
+            ...
+            "bouquet_name_n": "sRef_n",
+        }
     """
     result = {}
     url = '{}/api/bouquets'.format(api_root_url)
@@ -37,6 +51,22 @@ def getBouquets(bouquet, api_root_url, list_bouquets):
 
 
 def getBouquetsServices(bouquets, api_root_url):
+    """
+    Function to return the list of services (channels) for each bouquet in the
+    bouquets param
+
+    params:
+        - boutquets: [bouquet_obj_1, bouquet_obj_2, ...]
+        - api_root_url: Root URL of the OpenWebif server
+    returns:
+        - type: dict
+        - model:
+            {
+                "bouquet_name_1": [svc_1_obj, svc_2_obj, ..., svc_n_obj],
+                ...
+                "bouquet_name_n": [svc_1_obj, svc_2_obj, ..., svc_n_obj]
+            }
+    """
     services = {}
     try:
         for bouquet_name, bouquet_svc_ref in bouquets.items():
@@ -49,6 +79,21 @@ def getBouquetsServices(bouquets, api_root_url):
 
 
 def getEPGs(bouquets_services, api_root_url):
+    """
+    Function to get the EPGs for the services in the bouquet_services param.
+
+    params:
+        - bouquet_services: [svc_obj_1, svc_obj_2, ...]
+        - api_root_url: Root URL of the OpenWebif server
+    returns:
+        - type: dict
+        - model:
+            {
+                "program_id": [ event_obj_1, event_obj_2, ...],
+                ...,
+                "program_id": [ event_obj_1, event_obj_2, ...]
+            }
+    """
     epg = {}
     for _, services in bouquets_services.items():
         for service in services:
@@ -64,6 +109,12 @@ def getEPGs(bouquets_services, api_root_url):
 
 
 def addChannels2XML(xmltv, bouquets_services, epg, api_root_url):
+    """
+    Function to add the list of services/channels to the resultant XML object.
+
+    returns:
+        - type: lxml.etree
+    """
     for _, services in bouquets_services.items():
         for service in services:
             if service['pos']:
@@ -78,26 +129,14 @@ def addChannels2XML(xmltv, bouquets_services, epg, api_root_url):
     return xmltv
 
 
-# def addCategories2Programme_(programme, event):
-#     sd = event['shortdesc']
-#     programme_category = etree.SubElement(programme, 'category')
-#     programme_category.attrib['lang'] = 'en'
-#     if sd != '':
-#         categories = sd[sd.find('[')+1:sd.find(']')].split('. ')
-#         if len(categories) > 0:
-#             programme_category.text = categories[0]
-#         else:
-#             programme_category.text = 'Show'    
-#         if len(categories) > 1:
-#             programme_keyword = etree.SubElement(programme, 'keyword')
-#             programme_keyword.text = html.unescape(categories[1])
-#             programme_keyword.attrib['lang'] = 'en'
-#     else:
-#         programme_category.text = 'Show'
-#     return programme
-
-
 def addCategories2Programme(programme, event):
+    """
+    Function to add the catergories to a program. Returns the XML program object
+    with the cateogry added.
+
+    returns:
+        - type: lxml.etree
+    """
     programme_category = etree.SubElement(programme, 'category')
     programme_category.attrib['lang'] = 'en'
     category = re.search(r'^\[([\w\s]+)\]', event['shortdesc'])
@@ -109,6 +148,13 @@ def addCategories2Programme(programme, event):
 
 
 def addSeriesInfo2Programme(programme, event):
+    """
+    Function to add Information to programs with the Categories Series or Show
+    relating to the episode number or original air date.
+
+    returns:
+        - type: lxml.etree
+    """
     epnum = re.search(r'[SE]+[\dE]+[\d]*', event['shortdesc'])
     original_air_date = re.search( r'(\d\d)/(\d\d)/(\d\d\d\d)', event['shortdesc'])
     if epnum:
@@ -146,6 +192,12 @@ def addSeriesInfo2Programme(programme, event):
 
 
 def addEvents2XML(xmltv, epg):
+    """
+    Function to add events (programms) to the XMLTV structure.
+
+    returns:
+        - type: lxml.etree
+    """
     for service_program, events in epg.items():
         for event in events:
             # Time Calculations and transformations
@@ -185,6 +237,13 @@ def addEvents2XML(xmltv, epg):
 
 
 def generateXMLTV(bouquets_services, epg, api_root_url):
+    """
+    Function to generate the XMLTV object
+
+    returns:
+        - type: string
+        - desc: Representation of the XMLTV object as a String.
+    """
     xmltv = etree.Element('tv')
     xmltv.attrib['generator-info-url'] = 'https://github.com/cvarelaruiz'
     xmltv.attrib['generator-info-name'] = 'OpenWebIf 2 Plex XMLTV'
