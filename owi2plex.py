@@ -99,7 +99,9 @@ def getEPGs(bouquets_services, api_root_url):
         for service in services:
             if service['pos']:
                 url = '{}/api/epgservice?sRef={}'.format(api_root_url, service['servicereference'])
-                print("{} ({}) ==> {}".format(service['servicename'], service['program'], url))
+                print("Getting EPG for Service {}.{} ({}) from [{}]".format(
+                    service['pos'], service['servicename'], service['program'],
+                    url))
                 try:
                     service_epg_data = requests.get(url)
                     epg[service['program']] = service_epg_data.json()['events']
@@ -244,6 +246,7 @@ def generateXMLTV(bouquets_services, epg, api_root_url):
         - type: string
         - desc: Representation of the XMLTV object as a String.
     """
+    print("Generating XMLTV payload.")
     xmltv = etree.Element('tv')
     xmltv.attrib['generator-info-url'] = 'https://github.com/cvarelaruiz'
     xmltv.attrib['generator-info-name'] = 'OpenWebIf 2 Plex XMLTV'
@@ -274,9 +277,14 @@ def main(bouquet=None, username=None, password=None, host='localhost', port=80,
     bouquets_services = getBouquetsServices(bouquets=bouquets, api_root_url=api_root_url)
     epg = getEPGs(bouquets_services=bouquets_services, api_root_url=api_root_url)
     xmltv = generateXMLTV(bouquets_services, epg, api_root_url)
-    with open(output_file, 'w') as xmltv_file:
-        xmltv_file.write(xmltv.decode("utf-8"))
-
+    print("Saving XMLTV payload to file {}".format(output_file))
+    try:
+        with open(output_file, 'w') as xmltv_file:
+            xmltv_file.write(xmltv.decode("utf-8"))
+            print("Boom!")
+    except Exception:
+        print("Uh-oh!")
+        raise
 
 if __name__ == '__main__':
     main()
