@@ -148,6 +148,33 @@ def addCategories2Programme(programme, event):
         programme_category.text = 'Show'
     return programme
 
+def parseSEP(text):
+    S = ''
+    E = ''
+    P = ''
+    is_a_match = True
+    match = None
+
+    c4_style = re.search(r'(?:S(?P<S>\d+)(?:\/|\s)*)?(?:Ep|E)\s*(?P<E>\d+)(?:\/(?P<P>\d+))?', text)
+    bbc_style = re.search(r'^(?P<E>\d+)\/(?P<P>\d+)\.', text)
+    if c4_style:
+        match = c4_style
+    elif bbc_style:
+        match = bbc_style
+    else:
+        is_a_match = False
+
+    if match:
+        group_names = match.groupdict().keys()
+        if 'S' in group_names:
+            S = '{}'.format(int(match.group('S')) - 1 if match.group('S') else '')
+        if 'E' in group_names:
+            E = '{}'.format(int(match.group('E')) - 1 if match.group('E') else '')
+        if 'P' in group_names:
+            P = '{}'.format(int(match.group('P')) - 1 if match.group('P') else '')
+        
+    return is_a_match, '{}.{}.{}'.format(S, E, P)
+
 
 def addSeriesInfo2Programme(programme, event):
     """
@@ -157,31 +184,13 @@ def addSeriesInfo2Programme(programme, event):
     returns:
         - type: lxml.etree
     """
-    #epnum = re.search(r'[SE]+[\dE]+|Ep[\d]*', event['shortdesc'])
     original_air_date = re.search( r'(\d{2})[\/|\.](\d{2})[\/|\.](\d{4})', event['shortdesc'])
-    epnum_ext = re.search(r'\((?:S(?P<S>\d+)\s*)?(?:(?:Ep|E)(?P<E>\d+))?(?:\/(?P<P>\d+))?\)', event['shortdesc'])
-    if epnum_ext:
+    match_epnum, epnum = parseSEP(event['shortdesc'])
+    if match_epnum:
         programme_epnum = etree.SubElement(programme, 'episode-num')
         programme_epnum.attrib['system'] = 'xmltv_ns'
-        programme_epnum.text = '{}.{}.{}'.format(
-            int(epnum_ext.group('S')) - 1 if epnum_ext.group('S') else '', 
-            int(epnum_ext.group('E')) - 1 if epnum_ext.group('E') else '',
-            int(epnum_ext.group('P')) - 1 if epnum_ext.group('P') else '')
-    # elif epnum:
-    #     epnum = epnum.group()
-    #     programme_epnum = etree.SubElement(programme, 'episode-num')
-    #     programme_epnum.attrib['system'] = 'xmltv_ns'
-    #     series_num = re.search(r'S([\d]+)', epnum)
-    #     episode_num = re.search(r'E([\d]+)', epnum)
-    #     if series_num:
-    #         series_num = int(series_num.group(1)) - 1
-    #     else:
-    #         series_num = ''
-    #     if episode_num:
-    #         episode_num = int(episode_num.group(1)) - 1
-    #     else:
-    #         episode_num = ''
-    #     programme_epnum.text = '{}.{}.'.format(series_num, episode_num)
+        programme_epnum.text = epnum
+
     elif original_air_date:
         programme_epnum = etree.SubElement(programme, 'episode-num')
         programme_epnum.attrib['system'] = 'original-air-date'
