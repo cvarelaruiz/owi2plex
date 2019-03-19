@@ -99,7 +99,7 @@ def getEPGs(bouquets_services, api_root_url):
         for service in services:
             if service['pos']:
                 url = '{}/api/epgservice?sRef={}'.format(api_root_url, service['servicereference'])
-                print("Getting EPG for Service {}.{} ({}) from [{}]".format(
+                print("Getting EPG for Service {}.{} ({}) from {}".format(
                     service['pos'], service['servicename'], service['program'],
                     url))
                 try:
@@ -157,9 +157,17 @@ def addSeriesInfo2Programme(programme, event):
     returns:
         - type: lxml.etree
     """
-    epnum = re.search(r'[SE]+[\dE]+[\d]*', event['shortdesc'])
+    epnum = re.search(r'[SE]+[\dE]+|Ep[\d]*', event['shortdesc'])
     original_air_date = re.search( r'(\d\d)/(\d\d)/(\d\d\d\d)', event['shortdesc'])
-    if epnum:
+    epnum_ext = re.search(r'\(S(\d+)\s+Ep(\d+)(?:\/(\d+))?\)', event['shortdesc'])
+    if epnum_ext:
+        programme_epnum = etree.SubElement(programme, 'episode-num')
+        programme_epnum.attrib['system'] = 'xmltv_ns'
+        part = int(epnum_ext.group(3)) - 1 if epnum_ext.group(3) else 0
+        programme_epnum.text = '{}.{}.{}'.format(
+            int(epnum_ext.group(1)) - 1, 
+            int(epnum_ext.group(2)) -1 , part)
+    elif epnum:
         epnum = epnum.group()
         programme_epnum = etree.SubElement(programme, 'episode-num')
         programme_epnum.attrib['system'] = 'xmltv_ns'
@@ -214,7 +222,16 @@ def addEvents2XML(xmltv, epg):
             programme.attrib['stop'] = end_dt_str
 
             programme_desc = etree.SubElement(programme, 'desc')
-            programme_desc.text = html.unescape(event['longdesc'])
+            if event['longdesc'] == '':
+                programme_desc.text = html.unescape(event['shortdesc'])
+            else:
+                programme_desc.text = html.unescape(event['longdesc'])
+                subtitle_first_step = re.sub(r'^(\[.+\]\s*)', '', event['shortdesc'])
+                subtitle = re.sub(r'\s*\([SE]\d+.*\)', '', subtitle_first_step)
+                if len(subtitle) > 0:
+                    programme_subtitle = etree.SubElement(programme, 'sub-title')
+                    programme_subtitle.text = html.unescape(subtitle)
+                    programme_subtitle.attrib['lang'] = 'en'
             programme_desc.attrib['lang'] = 'en'
 
             programme_title = etree.SubElement(programme, 'title')
@@ -222,12 +239,7 @@ def addEvents2XML(xmltv, epg):
             programme_title.attrib['lang'] = 'en'
 
             
-            subtitle_first_step = re.sub(r'^(\[.+\]\s*)', '', event['shortdesc'])
-            subtitle = re.sub(r'\s*\([SE]\d+.*\)', '', subtitle_first_step)
-            if len(subtitle) > 0:
-                programme_subtitle = etree.SubElement(programme, 'sub-title')
-                programme_subtitle.text = html.unescape(subtitle)
-                programme_subtitle.attrib['lang'] = 'en'
+            
 
             programme = addCategories2Programme(programme, event)
             programme_type = programme.find('category').text

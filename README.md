@@ -9,6 +9,10 @@ Plex (to use the XMLTV file)
 ## Installation
 Clone this repository locally (suggested you do into a folder where you Plex server runs or at least where it can the file via a network mount/share).
 
+Install the requirements with:
+
+`pip install -r requirements.txt`
+
 ## Usage
 ```
 python owi2plex.py --help
