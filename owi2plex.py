@@ -185,20 +185,27 @@ def addSeriesInfo2Programme(programme, event):
     """
     original_air_date = re.search( r'(\d{2})[\/|\.](\d{2})[\/|\.](\d{4})', event['shortdesc'])
     match_epnum, epnum = parseSEP(event['shortdesc'])
+
+    # Don't attempt to put an episode-num to certain categories
+    try:
+        existing_category = programme.find('category')
+        if existing_category.text in ('Movie', 'News'):
+            return programme
+    except AttributeError:
+        pass
+
     if match_epnum:
         programme_epnum = etree.SubElement(programme, 'episode-num')
         programme_epnum.attrib['system'] = 'xmltv_ns'
         programme_epnum.text = epnum
 
         # Override prev. categories found to 'Series'
-        existing_category = programme.find('category')
         if existing_category is not None:
             existing_category.text = 'Series'
         else:
             programme_category = etree.SubElement(programme, 'category')
             programme_category.attrib['lang'] = 'en'
             programme_category.text = 'Series'
-
     elif original_air_date:
         programme_epnum = etree.SubElement(programme, 'episode-num')
         programme_epnum.attrib['system'] = 'original-air-date'
@@ -237,6 +244,10 @@ def addEvents2XML(xmltv, epg):
             programme.attrib['channel'] = str(service_program)
             programme.attrib['start'] = start_dt_str
             programme.attrib['stop'] = end_dt_str
+
+            programme_duration = etree.SubElement(programme, 'length')
+            programme_duration.attrib['units'] = 'minutes'
+            programme_duration.text = str(event['duration'])
 
             programme_desc = etree.SubElement(programme, 'desc')
             if event['longdesc'] == '':
