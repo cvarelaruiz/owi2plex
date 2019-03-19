@@ -234,8 +234,12 @@ def addEvents2XML(xmltv, epg):
                     programme_subtitle.attrib['lang'] = 'en'
             programme_desc.attrib['lang'] = 'en'
 
+            title = html.unescape(event['title'])
+            if 'New: ' in title:
+                _ = etree.SubElement(programme, 'new')
+                title = title.replace('New: ', '')
             programme_title = etree.SubElement(programme, 'title')
-            programme_title.text = html.unescape(event['title'])
+            programme_title.text = title 
             programme_title.attrib['lang'] = 'en'
 
             
