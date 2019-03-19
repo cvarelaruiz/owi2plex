@@ -139,11 +139,13 @@ def addCategories2Programme(programme, event):
     returns:
         - type: lxml.etree
     """
-    category = re.search(r'^\[([\w\s]+)\]', event['shortdesc'])
-    if category:
-        programme_category = etree.SubElement(programme, 'category')
-        programme_category.attrib['lang'] = 'en'
-        programme_category.text = '{}'.format(category.group(1))
+    categories = re.search(r'^\[(?P<C1>[\w\s]+)[\.\s]*(?P<C2>[\w\s]+)*\]', event['shortdesc'])
+    if categories:
+        for category in categories.groupdict().values(): 
+            if category:
+                programme_category = etree.SubElement(programme, 'category')
+                programme_category.attrib['lang'] = 'en'
+                programme_category.text = '{}'.format(category)
 
     return programme
 
@@ -199,14 +201,13 @@ def addSeriesInfo2Programme(programme, event):
         programme_epnum.attrib['system'] = 'xmltv_ns'
         programme_epnum.text = epnum
 
-        # Override prev. categories found to 'Series'
-        if existing_category is not None:
-            existing_category.text = 'Series'
-        else:
+        # If it hasn't got a category but a epnum then it must be a Series
+        if existing_category is None:
             programme_category = etree.SubElement(programme, 'category')
             programme_category.attrib['lang'] = 'en'
             programme_category.text = 'Series'
-    elif original_air_date:
+
+    if original_air_date:
         programme_epnum = etree.SubElement(programme, 'episode-num')
         programme_epnum.attrib['system'] = 'original-air-date'
         programme_epnum.text = "{}-{}-{}".format(
@@ -222,6 +223,23 @@ def addSeriesInfo2Programme(programme, event):
             original_air_date.group(2),
             original_air_date.group(1))
 
+    return programme
+
+
+def addMovieCredits(programme, event):
+    try:
+        existing_category = programme.find('category')
+        if existing_category.text in ('Movie'):
+            cast = event['longdesc'].split('\n', 2)
+            if len(cast)>2:
+                credits = etree.SubElement(programme, 'credits')
+                director = etree.SubElement(credits, 'director')
+                director.text = cast[1]
+                for cast in cast[2][:-1].split('\n'):
+                    actor = etree.SubElement(credits, 'actor')
+                    actor.text = cast
+    except AttributeError:
+        pass
     return programme
 
 
@@ -271,7 +289,8 @@ def addEvents2XML(xmltv, epg):
             programme_title.attrib['lang'] = 'en'
 
             programme = addCategories2Programme(programme, event)
-            programme = addSeriesInfo2Programme(programme, event)            
+            programme = addSeriesInfo2Programme(programme, event)   
+            programme = addMovieCredits(programme, event)         
 
     return xmltv
 
