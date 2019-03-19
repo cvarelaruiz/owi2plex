@@ -158,7 +158,7 @@ def addSeriesInfo2Programme(programme, event):
         - type: lxml.etree
     """
     epnum = re.search(r'[SE]+[\dE]+|Ep[\d]*', event['shortdesc'])
-    original_air_date = re.search( r'(\d\d)/(\d\d)/(\d\d\d\d)', event['shortdesc'])
+    original_air_date = re.search( r'(\d{2})[\/|\.](\d{2})[\/|\.](\d{4})', event['shortdesc'])
     epnum_ext = re.search(r'\(S(\d+)\s+Ep(\d+)(?:\/(\d+))?\)', event['shortdesc'])
     if epnum_ext:
         programme_epnum = etree.SubElement(programme, 'episode-num')
