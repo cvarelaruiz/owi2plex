@@ -189,7 +189,15 @@ def addSeriesInfo2Programme(programme, event):
         programme_epnum = etree.SubElement(programme, 'episode-num')
         programme_epnum.attrib['system'] = 'xmltv_ns'
         programme_epnum.text = epnum
-        programme.find('category').text = 'Series'
+
+        # Override prev. categories found to 'Series'
+        existing_category = programme.find('category')
+        if existing_category is not None:
+            existing_category.text = 'Series'
+        else:
+            programme_category = etree.SubElement(programme, 'category')
+            programme_category.attrib['lang'] = 'en'
+            programme_category.text = 'Series'
 
     elif original_air_date:
         programme_epnum = etree.SubElement(programme, 'episode-num')
