@@ -139,13 +139,12 @@ def addCategories2Programme(programme, event):
     returns:
         - type: lxml.etree
     """
-    programme_category = etree.SubElement(programme, 'category')
-    programme_category.attrib['lang'] = 'en'
     category = re.search(r'^\[([\w\s]+)\]', event['shortdesc'])
     if category:
+        programme_category = etree.SubElement(programme, 'category')
+        programme_category.attrib['lang'] = 'en'
         programme_category.text = '{}'.format(category.group(1))
-    else:
-        programme_category.text = 'Show'
+
     return programme
 
 def parseSEP(text):
@@ -190,6 +189,7 @@ def addSeriesInfo2Programme(programme, event):
         programme_epnum = etree.SubElement(programme, 'episode-num')
         programme_epnum.attrib['system'] = 'xmltv_ns'
         programme_epnum.text = epnum
+        programme.find('category').text = 'Series'
 
     elif original_air_date:
         programme_epnum = etree.SubElement(programme, 'episode-num')
@@ -251,14 +251,8 @@ def addEvents2XML(xmltv, epg):
             programme_title.text = title 
             programme_title.attrib['lang'] = 'en'
 
-            
-            
-
             programme = addCategories2Programme(programme, event)
-            programme_type = programme.find('category').text
-            if programme_type in ['Series', 'Show']:
-                programme = addSeriesInfo2Programme(programme, event)
-            
+            programme = addSeriesInfo2Programme(programme, event)            
 
     return xmltv
 
