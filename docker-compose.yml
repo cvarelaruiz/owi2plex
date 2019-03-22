@@ -14,3 +14,4 @@ services:
       - "32414:32414/udp"
     volumes: 
       - ./epg:/tmp
+      - ./media:/media
