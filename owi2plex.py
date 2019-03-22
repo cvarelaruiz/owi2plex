@@ -185,7 +185,7 @@ def addSeriesInfo2Programme(programme, event):
     returns:
         - type: lxml.etree
     """
-    original_air_date = re.search( r'(\d{2})[\/|\.](\d{2})[\/|\.](\d{4})', event['shortdesc'])
+    original_air_date = re.search( r'(\d{2})[\/|\.|\-](\d{2})[\/|\.|\-](\d{4})', event['shortdesc'])
     match_epnum, epnum = parseSEP(event['shortdesc'])
 
     # Don't attempt to put an episode-num to certain categories
@@ -214,14 +214,14 @@ def addSeriesInfo2Programme(programme, event):
             original_air_date.group(3),
             original_air_date.group(2),
             original_air_date.group(1))
-    else:
-        original_air_date = re.search( r'(\d\d).(\d\d).(\d\d\d\d)', event['date'])
-        programme_epnum = etree.SubElement(programme, 'episode-num')
-        programme_epnum.attrib['system'] = 'original-air-date'
-        programme_epnum.text = "{}-{}-{}".format(
-            original_air_date.group(3),
-            original_air_date.group(2),
-            original_air_date.group(1))
+    # else:
+    #     original_air_date = re.search( r'(\d\d).(\d\d).(\d\d\d\d)', event['date'])
+    #     programme_epnum = etree.SubElement(programme, 'episode-num')
+    #     programme_epnum.attrib['system'] = 'original-air-date'
+    #     programme_epnum.text = "{}-{}-{}".format(
+    #         original_air_date.group(3),
+    #         original_air_date.group(2),
+    #         original_air_date.group(1))
 
     return programme
 
@@ -254,9 +254,9 @@ def addEvents2XML(xmltv, epg):
         for event in events:
             # Time Calculations and transformations
             start_dt = datetime.fromtimestamp(event['begin_timestamp'])
-            start_dt_str = start_dt.strftime("%Y%m%d%H%M%S")
+            start_dt_str = start_dt.strftime("%Y%m%d%H%M%S +0000")
             end_dt = start_dt + timedelta(minutes=event['duration'])
-            end_dt_str = end_dt.strftime("%Y%m%d%H%M%S")
+            end_dt_str = end_dt.strftime("%Y%m%d%H%M%S +0000")
 
             programme = etree.SubElement(xmltv, 'programme')
             programme.attrib['channel'] = str(service_program)
@@ -307,6 +307,7 @@ def generateXMLTV(bouquets_services, epg, api_root_url):
     xmltv = etree.Element('tv')
     xmltv.attrib['generator-info-url'] = 'https://github.com/cvarelaruiz'
     xmltv.attrib['generator-info-name'] = 'OpenWebIf 2 Plex XMLTV'
+    xmltv.attrib['date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     xmltv = addChannels2XML(xmltv, bouquets_services, epg, api_root_url)
     xmltv = addEvents2XML(xmltv, epg)
