@@ -8,6 +8,19 @@ from lxml import etree
 from datetime import datetime, timedelta
 
 
+def unescape(text):
+    """
+    Safe check of the existence of the unescape function as the future module
+    doesn't appear to have it yet.
+
+    https://github.com/PythonCharmers/python-future/issues/247
+    """
+    if 'unescape' in dir(html):
+        return html.unescape(text)
+    else:
+        return text
+
+
 def getAPIRoot(username, password, host, port):
     """
     Simple function to form the url of the OpenWebif server.
@@ -42,7 +55,7 @@ def getBouquets(bouquet, api_root_url, list_bouquets):
         bouquets = bouquets_data.json()['bouquets']
         for b in bouquets:
             if list_bouquets:
-                print("Found bouquet: {}".format(b[1]))
+                print(u"Found bouquet: {}".format(b[1]))
             if b[1] == bouquet or not bouquet:
                 result[b[1]] = b[0]
     except Exception:
@@ -98,10 +111,11 @@ def getEPGs(bouquets_services, api_root_url):
     for _, services in bouquets_services.items():
         for service in services:
             if service['pos']:
-                url = '{}/api/epgservice?sRef={}'.format(api_root_url, service['servicereference'])
-                print("Getting EPG for Service {}.{} ({}) from {}".format(
+                url = u'{}/api/epgservice?sRef={}'.format(api_root_url, service['servicereference'])
+                debug_message = u"Getting EPG for Service {}.{} ({}) from {}".format(
                     service['pos'], service['servicename'], service['program'],
-                    url))
+                    url)
+                print(debug_message.encode('utf-8'))
                 try:
                     service_epg_data = requests.get(url)
                     epg[service['program']] = service_epg_data.json()['events']
@@ -122,7 +136,7 @@ def addChannels2XML(xmltv, bouquets_services, epg, api_root_url):
             if service['pos']:
                 channel = etree.SubElement(xmltv, 'channel')
                 channel.attrib['id'] = '{}'.format(service['program'])
-                etree.SubElement(channel, 'display-name').text = html.unescape(service['servicename'])
+                etree.SubElement(channel, 'display-name').text = unescape(service['servicename'])
                 etree.SubElement(channel, 'display-name').text = str(service['pos'])
                 if epg[service['program']]:
                     first_event = epg[service['program']][0]
@@ -269,18 +283,18 @@ def addEvents2XML(xmltv, epg):
 
             programme_desc = etree.SubElement(programme, 'desc')
             if event['longdesc'] == '':
-                programme_desc.text = html.unescape(event['shortdesc'])
+                programme_desc.text = unescape(event['shortdesc'])
             else:
-                programme_desc.text = html.unescape(event['longdesc'])
+                programme_desc.text = unescape(event['longdesc'])
                 subtitle_first_step = re.sub(r'^(\[.+\]\s*)', '', event['shortdesc'])
                 subtitle = re.sub(r'\s*\([SE]\d+.*\)', '', subtitle_first_step)
                 if len(subtitle) > 0:
                     programme_subtitle = etree.SubElement(programme, 'sub-title')
-                    programme_subtitle.text = html.unescape(subtitle)
+                    programme_subtitle.text = unescape(subtitle)
                     programme_subtitle.attrib['lang'] = 'en'
             programme_desc.attrib['lang'] = 'en'
 
-            title = html.unescape(event['title'])
+            title = unescape(event['title'])
             if 'New: ' in title:
                 _ = etree.SubElement(programme, 'new')
                 title = title.replace('New: ', '')
@@ -303,7 +317,7 @@ def generateXMLTV(bouquets_services, epg, api_root_url):
         - type: string
         - desc: Representation of the XMLTV object as a String.
     """
-    print("Generating XMLTV payload.")
+    print(u"Generating XMLTV payload.")
     xmltv = etree.Element('tv')
     xmltv.attrib['generator-info-url'] = 'https://github.com/cvarelaruiz'
     xmltv.attrib['generator-info-name'] = 'OpenWebIf 2 Plex XMLTV'
@@ -335,13 +349,13 @@ def main(bouquet=None, username=None, password=None, host='localhost', port=80,
     bouquets_services = getBouquetsServices(bouquets=bouquets, api_root_url=api_root_url)
     epg = getEPGs(bouquets_services=bouquets_services, api_root_url=api_root_url)
     xmltv = generateXMLTV(bouquets_services, epg, api_root_url)
-    print("Saving XMLTV payload to file {}".format(output_file))
+    print(u"Saving XMLTV payload to file {}".format(output_file))
     try:
         with open(output_file, 'w') as xmltv_file:
             xmltv_file.write(xmltv.decode("utf-8"))
-            print("Boom!")
+            print(u"Boom!")
     except Exception:
-        print("Uh-oh!")
+        print(u"Uh-oh!")
         raise
 
 if __name__ == '__main__':

@@ -8,13 +8,16 @@ def read(fname):
 
 setup(
     name='OWi2Plex',
-    version='0.1a0',
+    version='0.1a1',
     scripts=['owi2plex.py'],
     install_requires=[
         'click==7.0',
         'requests==2.21.0',
-        'lxml==4.3.2'
+        'lxml==4.3.2',
+        'future==0.17.1',
+        'html==1.16'
     ],
+    #python_requires='>=3.6',
     author='Cristian Varela',
     author_email='cvarelaruiz@gmail.com',
     description='Exporter of EPG from OpenWebif to XMLTV to use with Plex',
@@ -27,7 +30,8 @@ setup(
         "Environment :: Console",
         "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
         "Natural Language :: English",
-        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.7",
         "Topic :: Other/Nonlisted Topic"
     ],
     entry_points='''

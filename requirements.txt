@@ -4,3 +4,7 @@ lxml==4.3.2
 
 # To upload packages to PyPi
 twine==1.13.0
+
+# For compatibility with Python 2.7
+future==0.17.1
+html==1.16
