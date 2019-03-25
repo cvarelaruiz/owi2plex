@@ -2,9 +2,11 @@
 Exporter of EPG from OpenWebif to XMLTV to use with Plex
 
 ## Dependencies
-* Python 3.7
-* OpenWebif Server (Such as Enigma2 box, OpenVix with OpenWebif plugin, ...)
-* Plex (to use the XMLTV file)
+* Python 2.7/3.7
+* The following Enigma2 Plugins need to be installed 
+  * OpenWebif Server Plugin
+  * HRTunerProxy Pluging
+* Plex (to use the XMLTV file) with a Premium Subscription
 
 ## Installation
 ### Via PIP
