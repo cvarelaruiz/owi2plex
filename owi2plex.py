@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import click
 import requests
-import html
 import re
 
 from lxml import etree
@@ -15,9 +14,10 @@ def unescape(text):
 
     https://github.com/PythonCharmers/python-future/issues/247
     """
-    if 'unescape' in dir(html):
+    try:
+        import html
         return html.unescape(text)
-    else:
+    except:
         return text
 
 
@@ -341,8 +341,15 @@ def generateXMLTV(bouquets_services, epg, api_root_url):
     type=click.STRING)
 @click.option('-l', '--list-bouquets', help='Display a list of bouquets.', 
     is_flag=True)
+@click.option('-V', '--version', help='displays the version of the package.',
+    is_flag=True)
 def main(bouquet=None, username=None, password=None, host='localhost', port=80,
-    output_file='epg.xmltv', list_bouquets=False):
+    output_file='epg.xmltv', list_bouquets=False, version=False):
+
+    if version:
+        print("OWI2PLEX version 0.1-alpha-3")
+        exit(0)
+
     api_root_url = getAPIRoot(username=username, password=password, host=host, port=port)
     bouquets = getBouquets(bouquet=bouquet, api_root_url=api_root_url,
         list_bouquets=list_bouquets)

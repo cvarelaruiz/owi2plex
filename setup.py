@@ -8,14 +8,13 @@ def read(fname):
 
 setup(
     name='OWi2Plex',
-    version='0.1a2',
+    version='0.1a3',
     scripts=['owi2plex.py'],
     install_requires=[
         'click==7.0',
         'requests==2.21.0',
         'lxml==4.3.2',
-        'future==0.17.1',
-        'html==1.16'
+        'future==0.17.1'
     ],
     #python_requires='>=3.6',
     author='Cristian Varela',
