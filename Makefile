@@ -3,13 +3,11 @@ all: clean build
 clean:
 	python setup.py clean --all
 	rm -r dist
-
+	rm -r *.egg-info
 
 build: 
-	python setup.py build sdist bdist_wheel
+	python setup.py build sdist
+	python setup.py build bdist_wheel --universal
 	
-build2:
-	python2 setup.py build bdist_wheel
-
 upload:
 	twine upload dist/*
