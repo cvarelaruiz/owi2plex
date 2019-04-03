@@ -4,7 +4,7 @@ import requests
 import re
 
 from lxml import etree
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
 
 def unescape(text):
@@ -122,6 +122,17 @@ def getEPGs(bouquets_services, api_root_url):
                 except Exception:
                     raise
     return epg
+
+
+def getOffset(api_root_url):
+    now = datetime.timestamp(datetime.now())
+    offset = (datetime.fromtimestamp(now) - datetime.utcfromtimestamp(now)).total_seconds()
+    hours = round(offset / 3600)
+    minutes = (offset - (hours * 3600))
+    tzo = "{:+05}".format(int(hours * 100 + (round(minutes / 900) * 900 / 60)))
+
+    print("Setting TZ Offset from UTC to {}".format(tzo))
+    return tzo
 
 
 def addChannels2XML(xmltv, bouquets_services, epg, api_root_url):
@@ -257,7 +268,7 @@ def addMovieCredits(programme, event):
     return programme
 
 
-def addEvents2XML(xmltv, epg):
+def addEvents2XML(xmltv, epg, tzoffset):
     """
     Function to add events (programms) to the XMLTV structure.
 
@@ -268,9 +279,9 @@ def addEvents2XML(xmltv, epg):
         for event in events:
             # Time Calculations and transformations
             start_dt = datetime.fromtimestamp(event['begin_timestamp'])
-            start_dt_str = start_dt.strftime("%Y%m%d%H%M%S +0000")
+            start_dt_str = start_dt.strftime("%Y%m%d%H%M%S {}".format(tzoffset))
             end_dt = start_dt + timedelta(minutes=event['duration'])
-            end_dt_str = end_dt.strftime("%Y%m%d%H%M%S +0000")
+            end_dt_str = end_dt.strftime("%Y%m%d%H%M%S {}".format(tzoffset))
 
             programme = etree.SubElement(xmltv, 'programme')
             programme.attrib['channel'] = str(service_program)
@@ -309,7 +320,7 @@ def addEvents2XML(xmltv, epg):
     return xmltv
 
 
-def generateXMLTV(bouquets_services, epg, api_root_url):
+def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset):
     """
     Function to generate the XMLTV object
 
@@ -324,7 +335,7 @@ def generateXMLTV(bouquets_services, epg, api_root_url):
     xmltv.attrib['date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     xmltv = addChannels2XML(xmltv, bouquets_services, epg, api_root_url)
-    xmltv = addEvents2XML(xmltv, epg)
+    xmltv = addEvents2XML(xmltv, epg, tzoffset)
 
     return etree.tostring(xmltv, pretty_print=True)
 
@@ -355,7 +366,8 @@ def main(bouquet=None, username=None, password=None, host='localhost', port=80,
         list_bouquets=list_bouquets)
     bouquets_services = getBouquetsServices(bouquets=bouquets, api_root_url=api_root_url)
     epg = getEPGs(bouquets_services=bouquets_services, api_root_url=api_root_url)
-    xmltv = generateXMLTV(bouquets_services, epg, api_root_url)
+    tzoffset = getOffset(api_root_url=api_root_url)
+    xmltv = generateXMLTV(bouquets_services, epg, api_root_url, tzoffset)
     print(u"Saving XMLTV payload to file {}".format(output_file))
     try:
         with open(output_file, 'w') as xmltv_file:
