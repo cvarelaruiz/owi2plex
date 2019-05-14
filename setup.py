@@ -2,13 +2,17 @@ import os
 from setuptools import setup
 
 
+__version__ = ''
+exec(open('./version.py').read())
+
+
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
 setup(
     name='OWi2Plex',
-    version='0.1a4',
+    version=__version__,
     scripts=['owi2plex.py'],
     install_requires=[
         'click==7.0',

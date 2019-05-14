@@ -20,3 +20,6 @@ build:
 	
 upload:
 	twine upload dist/*
+
+test:
+	pytest -sv
