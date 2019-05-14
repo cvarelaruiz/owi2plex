@@ -175,6 +175,9 @@ def addCategories2Programme(programme, event):
     return programme
 
 def parseSEP(text):
+    """
+    Function to parse the Seasson.Episode.Part numbers
+    """ 
     S = ''
     E = ''
     P = ''
@@ -231,6 +234,9 @@ def addSeriesInfo2Programme(programme, event):
             programme_category = etree.SubElement(programme, 'category')
             programme_category.attrib['lang'] = 'en'
             programme_category.text = 'Series'
+
+        if epnum == '1.1.' or epnum == '1.1.1':
+            _ = etree.SubElement(programme, 'new')
 
     if original_air_date:
         programme_epnum = etree.SubElement(programme, 'episode-num')
@@ -307,7 +313,7 @@ def addEvents2XML(xmltv, epg, tzoffset):
 
             title = unescape(event['title'])
             if 'New: ' in title:
-                _ = etree.SubElement(programme, 'new')
+                _ = etree.SubElement(programme, 'premiere')
                 title = title.replace('New: ', '')
             programme_title = etree.SubElement(programme, 'title')
             programme_title.text = title 
