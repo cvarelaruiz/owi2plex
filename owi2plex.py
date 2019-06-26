@@ -2,6 +2,8 @@
 import click
 import requests
 import re
+import collections
+
 
 from lxml import etree
 from datetime import datetime, timedelta, time
@@ -48,7 +50,7 @@ def getBouquets(bouquet, api_root_url, list_bouquets):
             "bouquet_name_n": "sRef_n",
         }
     """
-    result = {}
+    result = collections.OrderedDict()
     url = '{}/api/bouquets'.format(api_root_url)
     try:
         bouquets_data = requests.get(url)
@@ -80,7 +82,7 @@ def getBouquetsServices(bouquets, api_root_url):
                 "bouquet_name_n": [svc_1_obj, svc_2_obj, ..., svc_n_obj]
             }
     """
-    services = {}
+    services = collections.OrderedDict()
     try:
         for bouquet_name, bouquet_svc_ref in bouquets.items():
             url = '{}/api/getservices?sRef={}'.format(api_root_url, bouquet_svc_ref)
