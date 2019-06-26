@@ -144,7 +144,7 @@ def addChannels2XML(xmltv, bouquets_services, epg, api_root_url):
     returns:
         - type: lxml.etree
     """
-	number = 1
+    number = 1
     for _, services in bouquets_services.items():
         for service in services:
             if service['pos']:
@@ -152,12 +152,12 @@ def addChannels2XML(xmltv, bouquets_services, epg, api_root_url):
                 channel.attrib['id'] = '{}'.format(service['program'])
                 etree.SubElement(channel, 'display-name').text = unescape(service['servicename'])
                 etree.SubElement(channel, 'display-name').text = str(service['pos'])
-				etree.SubElement(channel, 'display-name').text = str(number)
+                etree.SubElement(channel, 'display-name').text = str(number)
                 if epg[service['program']]:
                     first_event = epg[service['program']][0]
                     channel_picon = etree.SubElement(channel, 'icon')
                     channel_picon.attrib['src'] = '{}{}'.format(api_root_url, first_event['picon'])
-			number += 1
+                    number += 1
     return xmltv
 
 
