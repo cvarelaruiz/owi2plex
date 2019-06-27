@@ -2,6 +2,7 @@
 import click
 import requests
 import re
+import collections
 
 from lxml import etree
 from datetime import datetime, timedelta, time
@@ -13,8 +14,11 @@ def unescape(text):
     doesn't appear to have it yet.
 
     https://github.com/PythonCharmers/python-future/issues/247
+
+    This function also replaces control characters for XML compatibility
     """
     try:
+        text = re.sub(u'[^\u0020-\uD7FF\u0009\u000A\u000D\uE000-\uFFFD\U00010000-\U0010FFFF]+', '', text)
         import html
         return html.unescape(text)
     except:
@@ -48,7 +52,7 @@ def getBouquets(bouquet, api_root_url, list_bouquets):
             "bouquet_name_n": "sRef_n",
         }
     """
-    result = {}
+    result = collections.OrderedDict()
     url = '{}/api/bouquets'.format(api_root_url)
     try:
         bouquets_data = requests.get(url)
@@ -80,7 +84,7 @@ def getBouquetsServices(bouquets, api_root_url):
                 "bouquet_name_n": [svc_1_obj, svc_2_obj, ..., svc_n_obj]
             }
     """
-    services = {}
+    services = collections.OrderedDict()
     try:
         for bouquet_name, bouquet_svc_ref in bouquets.items():
             url = '{}/api/getservices?sRef={}'.format(api_root_url, bouquet_svc_ref)
@@ -112,10 +116,10 @@ def getEPGs(bouquets_services, api_root_url):
         for service in services:
             if service['pos']:
                 url = u'{}/api/epgservice?sRef={}'.format(api_root_url, service['servicereference'])
-                debug_message = u"Getting EPG for Service {}.{} ({}) from {}".format(
+                debug_message = u"Getting EPG for service {}. {} ({}) from {}".format(
                     service['pos'], service['servicename'], service['program'],
                     url)
-                print(debug_message.encode('utf-8'))
+                print(debug_message)
                 try:
                     service_epg_data = requests.get(url)
                     epg[service['program']] = service_epg_data.json()['events']
@@ -135,24 +139,29 @@ def getOffset(api_root_url):
     return tzo
 
 
-def addChannels2XML(xmltv, bouquets_services, epg, api_root_url):
+def addChannels2XML(xmltv, bouquets_services, epg, api_root_url, continuous_numbering):
     """
     Function to add the list of services/channels to the resultant XML object.
 
     returns:
         - type: lxml.etree
     """
+    continuous_service_position = 1
     for _, services in bouquets_services.items():
         for service in services:
             if service['pos']:
                 channel = etree.SubElement(xmltv, 'channel')
                 channel.attrib['id'] = '{}'.format(service['program'])
                 etree.SubElement(channel, 'display-name').text = unescape(service['servicename'])
-                etree.SubElement(channel, 'display-name').text = str(service['pos'])
+                if (continuous_numbering == True):
+                    etree.SubElement(channel, 'display-name').text = str(continuous_service_position)
+                else:
+                    etree.SubElement(channel, 'display-name').text = str(service['pos'])
                 if epg[service['program']]:
                     first_event = epg[service['program']][0]
                     channel_picon = etree.SubElement(channel, 'icon')
                     channel_picon.attrib['src'] = '{}{}'.format(api_root_url, first_event['picon'])
+            continuous_service_position += 1
     return xmltv
 
 
@@ -320,7 +329,7 @@ def addEvents2XML(xmltv, epg, tzoffset):
     return xmltv
 
 
-def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset):
+def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset, continuous_numbering):
     """
     Function to generate the XMLTV object
 
@@ -334,7 +343,7 @@ def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset):
     xmltv.attrib['generator-info-name'] = 'OpenWebIf 2 Plex XMLTV'
     xmltv.attrib['date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    xmltv = addChannels2XML(xmltv, bouquets_services, epg, api_root_url)
+    xmltv = addChannels2XML(xmltv, bouquets_services, epg, api_root_url, continuous_numbering)
     xmltv = addEvents2XML(xmltv, epg, tzoffset)
 
     return etree.tostring(xmltv, pretty_print=True)
@@ -343,22 +352,24 @@ def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset):
 @click.command()
 @click.option('-b', '--bouquet', help='The name of the bouquet to parse. If not'
               ' specified parse all bouquets.', type=click.STRING)
-@click.option('-u', '--username', help='OpenWebIf Username', type=click.STRING)
-@click.option('-p', '--password', help='OpenWebIf Password', type=click.STRING)
-@click.option('-h', '--host', help='OpenWebIf Host', default='localhost',
+@click.option('-u', '--username', help='OpenWebIf username.', type=click.STRING)
+@click.option('-p', '--password', help='OpenWebIf password.', type=click.STRING)
+@click.option('-h', '--host', help='OpenWebIf host.', default='localhost',
     type=click.STRING)
-@click.option('-P', '--port', help='OpenWebIf Port', default=80, type=click.INT)
-@click.option('-o', '--output-file', help='Output file', default='epg.xml',
+@click.option('-P', '--port', help='OpenWebIf port.', default=80, type=click.INT)
+@click.option('-o', '--output-file', help='Output file.', default='epg.xml',
     type=click.STRING)
+@click.option('-c', '--continuous-numbering', help='Continuous numbering across'
+              ' bouquets.', is_flag=True)
 @click.option('-l', '--list-bouquets', help='Display a list of bouquets.', 
     is_flag=True)
-@click.option('-V', '--version', help='displays the version of the package.',
+@click.option('-V', '--version', help='Displays the version of the package.',
     is_flag=True)
 def main(bouquet=None, username=None, password=None, host='localhost', port=80,
-    output_file='epg.xmltv', list_bouquets=False, version=False):
+    output_file='epg.xmltv', continuous_numbering=False, list_bouquets=False, version=False):
 
     if version:
-        print("OWI2PLEX version 0.1-alpha-3")
+        print(u"OWI2PLEX version 0.1-alpha-5")
         exit(0)
 
     api_root_url = getAPIRoot(username=username, password=password, host=host, port=port)
@@ -367,7 +378,7 @@ def main(bouquet=None, username=None, password=None, host='localhost', port=80,
     bouquets_services = getBouquetsServices(bouquets=bouquets, api_root_url=api_root_url)
     epg = getEPGs(bouquets_services=bouquets_services, api_root_url=api_root_url)
     tzoffset = getOffset(api_root_url=api_root_url)
-    xmltv = generateXMLTV(bouquets_services, epg, api_root_url, tzoffset)
+    xmltv = generateXMLTV(bouquets_services, epg, api_root_url, tzoffset, continuous_numbering)
     print(u"Saving XMLTV payload to file {}".format(output_file))
     try:
         with open(output_file, 'w') as xmltv_file:
