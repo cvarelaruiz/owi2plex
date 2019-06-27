@@ -27,15 +27,16 @@ owi2plex --help
 Usage: owi2plex [OPTIONS]
 
 Options:
-  -b, --bouquet TEXT      The name of the bouquet to parse. If not specified
-                          parse all bouquets.
-  -u, --username TEXT     OpenWebIf Username
-  -p, --password TEXT     OpenWebIf Password
-  -h, --host TEXT         OpenWebIf Host
-  -P, --port INTEGER      OpenWebIf Port
-  -o, --output-file TEXT  Output file
-  -l, --list-bouquets     Display a list of bouquets.
-  --help                  Show this message and exit.
+  -b, --bouquet              TEXT     The name of the bouquet to parse. If not specified
+                                      parse all bouquets.
+  -u, --username             TEXT     OpenWebIf username.
+  -p, --password             TEXT     OpenWebIf password.
+  -h, --host                 TEXT     OpenWebIf host.
+  -P, --port                 INTEGER  OpenWebIf port.
+  -o, --output-file          TEXT     Output file.
+  -c, --continuous-numbering BOOLEAN  Continuous numbering across bouquets.
+  -l, --list-bouquets                 Display a list of bouquets.
+  --help                              Show this message and exit.
 ```
 
 ## Examples
