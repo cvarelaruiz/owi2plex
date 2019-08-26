@@ -25,6 +25,7 @@ setup(
     author_email='cvarelaruiz@gmail.com',
     description='Exporter of EPG from OpenWebif to XMLTV to use with Plex',
     long_description=read('README.md'),
+    long_description_content_type="text/markdown",
     license="MPL-2.0",
     keywords="plex openwebif xmltv",
     url="https://github.com/cvarelaruiz/owi2plex",
