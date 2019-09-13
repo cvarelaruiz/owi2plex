@@ -36,6 +36,8 @@ Options:
   -o, --output-file          TEXT     Output file.
   -c, --continuous-numbering BOOLEAN  Continuous numbering across bouquets.
   -l, --list-bouquets                 Display a list of bouquets.
+  -V, --version                       Displays the version of the package.
+  -O, --category-override    TEXT     Category override YAML file. See documentation for file format.
   --help                              Show this message and exit.
 ```
 
@@ -54,5 +56,46 @@ If you have a bouquet called TV and you only want to generate the XMLTV for the 
 For now the script doesn't handle scheduling but you can use crontab in Linux or Windows' Task Scheduler. Ensure that the script runs daily *after* your OpenWebif box has refreshed the EPG.
 
 Depending on your machine and network speed the generation time varies but for my modest set-up it takes about 45 seconds for a bouquet with 100+ channels.
+
+## Program Category Overrides
+You can specify a YAML override file to force the category for programms with specific title patterns as the EPG provders and OpenWebIf don't provide accurate categories in many cases. For example, give the following cat_overrides.yml file:
+
+```
+News: 
+  - "News: One O'Clock"
+  - "News: Six One"
+  - "News: Nine O'Clock"
+  - "ITV News:"
+  - "Weather for the Week Ahead"
+  - "BBC News"
+
+Sports:
+  - "Champions League"
+  - "Cycling:"
+  - "The NFL Show"
+  - "NFL This Week"
+
+Football: 
+  - "Champions League"
+
+Series:
+  - "The NFL Show"
+  - "NFL This Week"
+
+```
+
+you can run the following command: 
+
+`./owi2plex -b TV -h 192.168.0.150 -o /tmp/epg.xml -O ./cat_overrides.yml`
+
+To assign one or more categories to programs based on their title.
+
+Please note the following:
+
+* The file needs to be UTF-8 encoded, specially if the title patterns include special characters.
+* The overrides are *not* appended to the categories in the EPG. In other words, if the title matches an override pattern it'll ignore the catogries parsed from the EPG.
+* The titles are matched partially. For example, in the case of the file above, programs titled `Champions League Magazine` and `Champions League Live Tonight` with have their categories overriden.
+* The title patterns are *not* case sensitve.
+
 
 Enjoy

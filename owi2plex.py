@@ -3,9 +3,14 @@ import click
 import requests
 import re
 import collections
+import yaml
 
 from lxml import etree
 from datetime import datetime, timedelta, time
+
+
+__version__ = ''
+exec(open('./version.py').read())
 
 
 def unescape(text):
@@ -165,7 +170,7 @@ def addChannels2XML(xmltv, bouquets_services, epg, api_root_url, continuous_numb
     return xmltv
 
 
-def addCategories2Programme(programme, event):
+def addCategories2Programme(title, programme, event, overrides):
     """
     Function to add the catergories to a program. Returns the XML program object
     with the cateogry added.
@@ -173,8 +178,21 @@ def addCategories2Programme(programme, event):
     returns:
         - type: lxml.etree
     """
+    category_overrides = []
     categories = re.search(r'^\[(?P<C1>[\w\s]+)[\.\s]*(?P<C2>[\w\s]+)*\]', event['shortdesc'])
-    if categories:
+
+    if overrides:
+        for pattern, override_categories in overrides.items():
+            if pattern in title.upper():
+                for category in override_categories:
+                    category_overrides.append(category) 
+
+    if len(category_overrides) > 0:
+        for cat_override in category_overrides:
+            programme_category = etree.SubElement(programme, 'category')
+            programme_category.attrib['lang'] = 'en'
+            programme_category.text = '{}'.format(cat_override)
+    elif categories:
         for category in categories.groupdict().values(): 
             if category:
                 programme_category = etree.SubElement(programme, 'category')
@@ -254,14 +272,6 @@ def addSeriesInfo2Programme(programme, event):
             original_air_date.group(3),
             original_air_date.group(2),
             original_air_date.group(1))
-    # else:
-    #     original_air_date = re.search( r'(\d\d).(\d\d).(\d\d\d\d)', event['date'])
-    #     programme_epnum = etree.SubElement(programme, 'episode-num')
-    #     programme_epnum.attrib['system'] = 'original-air-date'
-    #     programme_epnum.text = "{}-{}-{}".format(
-    #         original_air_date.group(3),
-    #         original_air_date.group(2),
-    #         original_air_date.group(1))
 
     return programme
 
@@ -283,13 +293,33 @@ def addMovieCredits(programme, event):
     return programme
 
 
-def addEvents2XML(xmltv, epg, tzoffset):
+def load_overrides(category_override):
+    transformed_overrides = None
+    if category_override:
+        transformed_overrides = {}
+        with open(category_override, 'r', encoding="utf-8") as cof:
+            try:
+                overrides = yaml.safe_load(cof)
+                for cat, ltitles in overrides.items():
+                    for title in ltitles:
+                        if transformed_overrides.get(title.upper(), None):
+                            transformed_overrides[title.upper()].append(cat)
+                        else: 
+                            transformed_overrides[title.upper()] = [cat]
+            except yaml.YAMLError:
+                raise
+    return transformed_overrides
+
+
+def addEvents2XML(xmltv, epg, tzoffset, category_override):
     """
     Function to add events (programms) to the XMLTV structure.
 
     returns:
         - type: lxml.etree
     """
+    overrides = load_overrides(category_override)
+
     for service_program, events in epg.items():
         for event in events:
             # Time Calculations and transformations
@@ -328,14 +358,15 @@ def addEvents2XML(xmltv, epg, tzoffset):
             programme_title.text = title 
             programme_title.attrib['lang'] = 'en'
 
-            programme = addCategories2Programme(programme, event)
+            programme = addCategories2Programme(event['title'], programme, event, overrides)
             programme = addSeriesInfo2Programme(programme, event)   
             programme = addMovieCredits(programme, event)         
 
     return xmltv
 
 
-def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset, continuous_numbering):
+def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset,
+        continuous_numbering, category_override):
     """
     Function to generate the XMLTV object
 
@@ -350,7 +381,7 @@ def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset, continuous_num
     xmltv.attrib['date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     xmltv = addChannels2XML(xmltv, bouquets_services, epg, api_root_url, continuous_numbering)
-    xmltv = addEvents2XML(xmltv, epg, tzoffset)
+    xmltv = addEvents2XML(xmltv, epg, tzoffset, category_override)
 
     return etree.tostring(xmltv, pretty_print=True)
 
@@ -371,20 +402,29 @@ def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset, continuous_num
     is_flag=True)
 @click.option('-V', '--version', help='Displays the version of the package.',
     is_flag=True)
+@click.option('-O', '--category-override', help='Category override YAML file. '
+              'See documentation for file format.', type=click.STRING,)
 def main(bouquet=None, username=None, password=None, host='localhost', port=80,
-    output_file='epg.xmltv', continuous_numbering=False, list_bouquets=False, version=False):
+    output_file='epg.xmltv', continuous_numbering=False, list_bouquets=False,
+    version=False, category_override=None):
 
     if version:
-        print(u"OWI2PLEX version 0.1-alpha-5")
+        print(u"OWI2PLEX version {}".format(__version__))
         exit(0)
 
     api_root_url = getAPIRoot(username=username, password=password, host=host, port=port)
+
+    # Retrieve Data from OpenWebIf
     bouquets = getBouquets(bouquet=bouquet, api_root_url=api_root_url,
         list_bouquets=list_bouquets)
     bouquets_services = getBouquetsServices(bouquets=bouquets, api_root_url=api_root_url)
     epg = getEPGs(bouquets_services=bouquets_services, api_root_url=api_root_url)
     tzoffset = getOffset(api_root_url=api_root_url)
-    xmltv = generateXMLTV(bouquets_services, epg, api_root_url, tzoffset, continuous_numbering)
+
+    # Generate the XMLTV file 
+    xmltv = generateXMLTV(
+        bouquets_services, epg, api_root_url, tzoffset, continuous_numbering,
+        category_override)
     print(u"Saving XMLTV payload to file {}".format(output_file))
     try:
         with open(output_file, 'w') as xmltv_file:
