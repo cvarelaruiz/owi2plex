@@ -4,13 +4,14 @@ import requests
 import re
 import collections
 import yaml
+import os
 
 from lxml import etree
 from datetime import datetime, timedelta, time
 
 
 __version__ = ''
-exec(open('./version.py').read())
+exec(open(os.path.dirname(os.path.realpath(__file__))+'/version.py').read())
 
 
 def unescape(text):
