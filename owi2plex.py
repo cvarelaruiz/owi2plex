@@ -5,6 +5,7 @@ import re
 import collections
 import yaml
 import os
+import html
 
 from lxml import etree
 from datetime import datetime, timedelta, time
@@ -25,7 +26,6 @@ def unescape(text):
     """
     try:
         text = re.sub(u'[^\u0020-\uD7FF\u0009\u000A\u000D\uE000-\uFFFD\U00010000-\U0010FFFF]+', '', text)
-        import html
         return html.unescape(text)
     except:
         return text

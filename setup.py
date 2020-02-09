@@ -13,7 +13,7 @@ def read(fname):
 setup(
     name='OWi2Plex',
     version=__version__,
-    scripts=['owi2plex.py'],
+    scripts=['owi2plex.py', 'version.py'],
     install_requires=[
         'click==7.0',
         'requests==2.21.0',
