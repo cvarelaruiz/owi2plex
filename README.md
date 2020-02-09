@@ -2,7 +2,7 @@
 Exporter of EPG from OpenWebif to XMLTV to use with Plex
 
 ## Dependencies
-* Python 2.7/3.7
+* Python 3.7
 * The following Enigma2 Plugins need to be installed 
   * OpenWebif Server Plugin
   * HRTunerProxy Pluging
@@ -58,7 +58,7 @@ For now the script doesn't handle scheduling but you can use crontab in Linux or
 Depending on your machine and network speed the generation time varies but for my modest set-up it takes about 45 seconds for a bouquet with 100+ channels.
 
 ## Program Category Overrides
-You can specify a YAML override file to force the category for programms with specific title patterns as the EPG provders and OpenWebIf don't provide accurate categories in many cases. For example, give the following cat_overrides.yml file:
+You can specify a YAML override file to force the category for programms with specific title patterns as the EPG providers and OpenWebIf don't provide accurate categories in many cases. For example, give the following cat_overrides.yml file:
 
 ```
 News: 
