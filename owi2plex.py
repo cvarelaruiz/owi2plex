@@ -6,6 +6,7 @@ import collections
 import yaml
 import os
 import html
+import codecs
 
 from lxml import etree
 from datetime import datetime, timedelta, time
@@ -211,6 +212,7 @@ def parseSEP(text):
     P = ''
     is_a_match = True
     match = None
+    is_premiere = False
 
     c4_style = re.search(r'(?:S(?P<S>\d+)(?:\/|\s)*)?(?:Ep|E)\s*(?P<E>\d+)(?:\/(?P<P>\d+))?', text)
     bbc_style = re.search(r'^(?P<E>\d+)\/(?P<P>\d+)\.', text)
@@ -227,13 +229,15 @@ def parseSEP(text):
             S = '{}'.format(int(match.group('S')) - 1 if match.group('S') else '')
         if 'E' in group_names:
             E = '{}'.format(int(match.group('E')) - 1 if match.group('E') else '')
+            if E == '1' or E == '0':
+                is_premiere = True
         if 'P' in group_names:
             P = '{}'.format(int(match.group('P')) - 1 if match.group('P') else '')
         
-    return is_a_match, '{}.{}.{}'.format(S, E, P)
+    return is_a_match, '{}.{}.{}'.format(S, E, P), is_premiere
 
 
-def addSeriesInfo2Programme(programme, event):
+def addSeriesInfo2Programme(programme, event, air_dt):
     """
     Function to add Information to programs with the Categories Series or Show
     relating to the episode number or original air date.
@@ -242,7 +246,7 @@ def addSeriesInfo2Programme(programme, event):
         - type: lxml.etree
     """
     original_air_date = re.search( r'(\d{2})[\/|\.|\-](\d{2})[\/|\.|\-](\d{4})', event['shortdesc'])
-    match_epnum, epnum = parseSEP(event['shortdesc'])
+    match_epnum, epnum, is_premiere = parseSEP(event['shortdesc'])
 
     # Don't attempt to put an episode-num to certain categories
     try:
@@ -263,8 +267,13 @@ def addSeriesInfo2Programme(programme, event):
             programme_category.attrib['lang'] = 'en'
             programme_category.text = 'Series'
 
+        # Notes the first screening of a new show.
         if epnum == '1.1.' or epnum == '1.1.1':
             _ = etree.SubElement(programme, 'new')
+
+        # Notes the first screened episode of a new or existing show.
+        if is_premiere:
+            _ = etree.SubElement(programme, 'premiere')
 
     if original_air_date:
         programme_epnum = etree.SubElement(programme, 'episode-num')
@@ -273,6 +282,9 @@ def addSeriesInfo2Programme(programme, event):
             original_air_date.group(3),
             original_air_date.group(2),
             original_air_date.group(1))
+        original_air_dt = datetime.strptime(programme_epnum.text, '%Y-%m-%d')
+        if air_dt.date() > original_air_dt.date():
+            _ = etree.SubElement(programme, 'previously-shown')
 
     return programme
 
@@ -338,6 +350,7 @@ def addEvents2XML(xmltv, epg, tzoffset, category_override):
             programme_duration.attrib['units'] = 'minutes'
             programme_duration.text = str(event['duration'])
 
+            # Get the Description of the program - Assumes English language
             programme_desc = etree.SubElement(programme, 'desc')
             if event['longdesc'] == '':
                 programme_desc.text = unescape(event['shortdesc'])
@@ -351,16 +364,17 @@ def addEvents2XML(xmltv, epg, tzoffset, category_override):
                     programme_subtitle.attrib['lang'] = 'en'
             programme_desc.attrib['lang'] = 'en'
 
+            # Get the title and remove the word NEW if present 
             title = unescape(event['title'])
             if 'New: ' in title:
-                _ = etree.SubElement(programme, 'premiere')
+                #_ = etree.SubElement(programme, 'premiere')
                 title = title.replace('New: ', '')
             programme_title = etree.SubElement(programme, 'title')
             programme_title.text = title 
             programme_title.attrib['lang'] = 'en'
 
             programme = addCategories2Programme(event['title'], programme, event, overrides)
-            programme = addSeriesInfo2Programme(programme, event)   
+            programme = addSeriesInfo2Programme(programme, event, start_dt)   
             programme = addMovieCredits(programme, event)         
 
     return xmltv
@@ -384,7 +398,7 @@ def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset,
     xmltv = addChannels2XML(xmltv, bouquets_services, epg, api_root_url, continuous_numbering)
     xmltv = addEvents2XML(xmltv, epg, tzoffset, category_override)
 
-    return etree.tostring(xmltv, pretty_print=True)
+    return etree.tostring(xmltv, encoding='unicode', pretty_print=True)
 
 
 @click.command()
@@ -428,8 +442,8 @@ def main(bouquet=None, username=None, password=None, host='localhost', port=80,
         category_override)
     print(u"Saving XMLTV payload to file {}".format(output_file))
     try:
-        with open(output_file, 'w') as xmltv_file:
-            xmltv_file.write(xmltv.decode("utf-8"))
+        with codecs.open(output_file, 'w', 'utf-8-sig') as xmltv_file:
+            xmltv_file.write(xmltv)
             print(u"Boom!")
     except Exception:
         print(u"Uh-oh!")
