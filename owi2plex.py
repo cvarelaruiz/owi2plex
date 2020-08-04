@@ -167,7 +167,7 @@ def addChannels2XML(xmltv, bouquets_services, epg, api_root_url, continuous_numb
                 if epg[service['program']]:
                     first_event = epg[service['program']][0]
                     channel_picon = etree.SubElement(channel, 'icon')
-                    channel_picon.attrib['src'] = '{}{}'.format(icon_url if icon_url else api_root_url, first_event['picon'])
+                    channel_picon.attrib['src'] = '{}{}'.format(icon_url if icon_url else api_root_url, "/" + first_event['picon'].split("/")[-1] if icon_url else first_event['picon'])
             continuous_service_position += 1
     return xmltv
 
