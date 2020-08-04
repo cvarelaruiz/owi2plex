@@ -413,7 +413,7 @@ def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset,
     type=click.STRING)
 @click.option('-c', '--continuous-numbering', help='Continuous numbering across'
               ' bouquets.', is_flag=True)
-@click.option('-i', '--icon-url', help='Custom Picon URL', type=click.STRING)
+@click.option('-i', '--icon-url', help='Custom Picon URL.', type=click.STRING)
 @click.option('-l', '--list-bouquets', help='Display a list of bouquets.', 
     is_flag=True)
 @click.option('-V', '--version', help='Displays the version of the package.',
