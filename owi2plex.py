@@ -146,7 +146,7 @@ def getOffset(api_root_url):
     return tzo
 
 
-def addChannels2XML(xmltv, bouquets_services, epg, api_root_url, continuous_numbering):
+def addChannels2XML(xmltv, bouquets_services, epg, api_root_url, continuous_numbering, picons):
     """
     Function to add the list of services/channels to the resultant XML object.
 
@@ -167,7 +167,7 @@ def addChannels2XML(xmltv, bouquets_services, epg, api_root_url, continuous_numb
                 if epg[service['program']]:
                     first_event = epg[service['program']][0]
                     channel_picon = etree.SubElement(channel, 'icon')
-                    channel_picon.attrib['src'] = '{}{}'.format(api_root_url, first_event['picon'])
+                    channel_picon.attrib['src'] = '{}{}'.format(picons if picons else api_root_url, first_event['picon'])
             continuous_service_position += 1
     return xmltv
 
@@ -381,7 +381,7 @@ def addEvents2XML(xmltv, epg, tzoffset, category_override):
 
 
 def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset,
-        continuous_numbering, category_override):
+        continuous_numbering, picons, category_override):
     """
     Function to generate the XMLTV object
 
@@ -395,7 +395,7 @@ def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset,
     xmltv.attrib['generator-info-name'] = 'OpenWebIf 2 Plex XMLTV'
     xmltv.attrib['date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    xmltv = addChannels2XML(xmltv, bouquets_services, epg, api_root_url, continuous_numbering)
+    xmltv = addChannels2XML(xmltv, bouquets_services, epg, api_root_url, continuous_numbering, picons)
     xmltv = addEvents2XML(xmltv, epg, tzoffset, category_override)
 
     return etree.tostring(xmltv, encoding='unicode', pretty_print=True)
@@ -413,6 +413,7 @@ def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset,
     type=click.STRING)
 @click.option('-c', '--continuous-numbering', help='Continuous numbering across'
               ' bouquets.', is_flag=True)
+@click.option('-i', '--picons', help='Override the picons URL.', type=click.STRING)
 @click.option('-l', '--list-bouquets', help='Display a list of bouquets.', 
     is_flag=True)
 @click.option('-V', '--version', help='Displays the version of the package.',
@@ -420,7 +421,7 @@ def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset,
 @click.option('-O', '--category-override', help='Category override YAML file. '
               'See documentation for file format.', type=click.STRING,)
 def main(bouquet=None, username=None, password=None, host='localhost', port=80,
-    output_file='epg.xmltv', continuous_numbering=False, list_bouquets=False,
+    output_file='epg.xmltv', continuous_numbering=False, picons=None, list_bouquets=False,
     version=False, category_override=None):
 
     if version:
@@ -438,7 +439,7 @@ def main(bouquet=None, username=None, password=None, host='localhost', port=80,
 
     # Generate the XMLTV file 
     xmltv = generateXMLTV(
-        bouquets_services, epg, api_root_url, tzoffset, continuous_numbering,
+        bouquets_services, epg, api_root_url, tzoffset, continuous_numbering, picons,
         category_override)
     print(u"Saving XMLTV payload to file {}".format(output_file))
     try:
