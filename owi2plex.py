@@ -282,10 +282,14 @@ def addSeriesInfo2Programme(programme, event, air_dt):
             original_air_date.group(3),
             original_air_date.group(2),
             original_air_date.group(1))
-        original_air_dt = datetime.strptime(programme_epnum.text, '%Y-%m-%d')
-        if air_dt.date() > original_air_dt.date():
-            _ = etree.SubElement(programme, 'previously-shown')
-
+        try:
+            original_air_dt = datetime.strptime(programme_epnum.text, '%Y-%m-%d')
+            if air_dt.date() > original_air_dt.date():
+                _ = etree.SubElement(programme, 'previously-shown')
+        except ValueError as e:
+            pass
+            # The orinal air date cannot be parse and will therefore be ignored
+            
     return programme
 
 
