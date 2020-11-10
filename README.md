@@ -35,6 +35,7 @@ Options:
   -P, --port                 INTEGER  OpenWebIf port.
   -o, --output-file          TEXT     Output file.
   -c, --continuous-numbering BOOLEAN  Continuous numbering across bouquets.
+  -i, --icon-url             TEXT     Custom Picon URL.
   -l, --list-bouquets                 Display a list of bouquets.
   -V, --version                       Displays the version of the package.
   -O, --category-override    TEXT     Category override YAML file. See documentation for file format.
