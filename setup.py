@@ -17,7 +17,7 @@ setup(
     install_requires=[
         'click==7.0',
         'requests==2.21.0',
-        'lxml==4.3.2',
+        'lxml==4.6.2',
         'future==0.17.1',
         'pyyaml==5.1.2'
     ],
