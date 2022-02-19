@@ -38,6 +38,7 @@ Options:
   -l, --list-bouquets                 Display a list of bouquets.
   -V, --version                       Displays the version of the package.
   -O, --category-override    TEXT     Category override YAML file. See documentation for file format.
+  -d, --debug                         Verbose Debug output in logfile.
   --help                              Show this message and exit.
 ```
 
