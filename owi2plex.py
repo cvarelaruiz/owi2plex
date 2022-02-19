@@ -7,6 +7,7 @@ import yaml
 import os
 import html
 import codecs
+import logging
 
 from lxml import etree
 from datetime import datetime, timedelta, time
@@ -14,6 +15,7 @@ from datetime import datetime, timedelta, time
 
 __version__ = ''
 exec(open(os.path.dirname(os.path.realpath(__file__))+'/version.py').read())
+logger = None
 
 
 def unescape(text):
@@ -59,6 +61,7 @@ def getBouquets(bouquet, api_root_url, list_bouquets):
             "bouquet_name_n": "sRef_n",
         }
     """
+    global logger
     result = collections.OrderedDict()
     url = '{}/api/bouquets'.format(api_root_url)
     try:
@@ -66,7 +69,7 @@ def getBouquets(bouquet, api_root_url, list_bouquets):
         bouquets = bouquets_data.json()['bouquets']
         for b in bouquets:
             if list_bouquets:
-                print(u"Found bouquet: {}".format(b[1]))
+                logger.info(u"Found bouquet: {}".format(b[1]))
             if b[1] == bouquet or not bouquet:
                 result[b[1]] = b[0]
     except Exception:
@@ -118,6 +121,7 @@ def getEPGs(bouquets_services, api_root_url):
                 "program_id": [ event_obj_1, event_obj_2, ...]
             }
     """
+    global logger
     epg = {}
     for _, services in bouquets_services.items():
         for service in services:
@@ -126,7 +130,7 @@ def getEPGs(bouquets_services, api_root_url):
                 debug_message = u"Getting EPG for service {}. {} ({}) from {}".format(
                     service['pos'], service['servicename'], service['program'],
                     url)
-                print(debug_message)
+                logger.info(debug_message)
                 try:
                     service_epg_data = requests.get(url)
                     epg[service['program']] = service_epg_data.json()['events']
@@ -136,13 +140,14 @@ def getEPGs(bouquets_services, api_root_url):
 
 
 def getOffset(api_root_url):
+    global logger
     now = datetime.timestamp(datetime.now())
     offset = (datetime.fromtimestamp(now) - datetime.utcfromtimestamp(now)).total_seconds()
     hours = round(offset / 3600)
     minutes = (offset - (hours * 3600))
     tzo = "{:+05}".format(int(hours * 100 + (round(minutes / 900) * 900 / 60)))
 
-    print("Setting TZ Offset from UTC to {}".format(tzo))
+    logger.info("Setting TZ Offset from UTC to {}".format(tzo))
     return tzo
 
 
@@ -207,6 +212,8 @@ def parseSEP(text):
     """
     Function to parse the Seasson.Episode.Part numbers
     """ 
+    global logger
+    logger.debug("ParsingSEP: {}".format(text))
     S = ''
     E = ''
     P = ''
@@ -216,24 +223,26 @@ def parseSEP(text):
 
     c4_style = re.search(r'(?:S(?P<S>\d+)(?:\/|\s)*)?(?:Ep|E)\s*(?P<E>\d+)(?:\/(?P<P>\d+))?', text)
     bbc_style = re.search(r'^(?P<E>\d+)\/(?P<P>\d+)\.', text)
-    if c4_style:
-        match = c4_style
-    elif bbc_style:
+    if bbc_style:
         match = bbc_style
+    elif c4_style:
+        match = c4_style
     else:
         is_a_match = False
 
     if match:
         group_names = match.groupdict().keys()
         if 'S' in group_names:
-            S = '{}'.format(int(match.group('S')) - 1 if match.group('S') else '')
+            S = '{}'.format(int(match.group('S')) if match.group('S') else '')
+        else:
+            S ='1'
         if 'E' in group_names:
-            E = '{}'.format(int(match.group('E')) - 1 if match.group('E') else '')
+            E = '{}'.format(int(match.group('E')) if match.group('E') else '')
             if E == '1' or E == '0':
                 is_premiere = True
         if 'P' in group_names:
-            P = '{}'.format(int(match.group('P')) - 1 if match.group('P') else '')
-        
+            P = '{}'.format(int(match.group('P')) if match.group('P') else '')
+    logger.debug("ParseSEP ==>{}: {}.{}.{}".format(is_a_match, S,E,P))    
     return is_a_match, '{}.{}.{}'.format(S, E, P), is_premiere
 
 
@@ -367,6 +376,8 @@ def addEvents2XML(xmltv, epg, tzoffset, category_override):
                     programme_subtitle.text = unescape(subtitle)
                     programme_subtitle.attrib['lang'] = 'en'
             programme_desc.attrib['lang'] = 'en'
+            if event['shortdesc'] == '':
+                event['shortdesc'] = event['longdesc']
 
             # Get the title and remove the word NEW if present 
             title = unescape(event['title'])
@@ -393,7 +404,8 @@ def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset,
         - type: string
         - desc: Representation of the XMLTV object as a String.
     """
-    print(u"Generating XMLTV payload.")
+    global logger
+    logger.info(u"Generating XMLTV payload.")
     xmltv = etree.Element('tv')
     xmltv.attrib['generator-info-url'] = 'https://github.com/cvarelaruiz'
     xmltv.attrib['generator-info-name'] = 'OpenWebIf 2 Plex XMLTV'
@@ -423,9 +435,25 @@ def generateXMLTV(bouquets_services, epg, api_root_url, tzoffset,
     is_flag=True)
 @click.option('-O', '--category-override', help='Category override YAML file. '
               'See documentation for file format.', type=click.STRING,)
+@click.option('-d', '--debug', help='Verbose Debugging.', is_flag=True)
 def main(bouquet=None, username=None, password=None, host='localhost', port=80,
     output_file='epg.xmltv', continuous_numbering=False, list_bouquets=False,
-    version=False, category_override=None):
+    version=False, category_override=None, debug=False):
+
+    # Initialize Debugging
+    if debug:
+        level = logging.DEBUG
+    else:
+        level = logging.INFO
+    
+    log_format = "%(levelname)s %(asctime)s - %(message)s"
+    logging.basicConfig(
+        filename = "./owi2plex.log",
+        filemode = "w",
+        format = log_format,
+        level = level)
+    global logger
+    logger = logging.getLogger('OWI2PLEX')
 
     if version:
         print(u"OWI2PLEX version {}".format(__version__))
@@ -444,13 +472,13 @@ def main(bouquet=None, username=None, password=None, host='localhost', port=80,
     xmltv = generateXMLTV(
         bouquets_services, epg, api_root_url, tzoffset, continuous_numbering,
         category_override)
-    print(u"Saving XMLTV payload to file {}".format(output_file))
+    logger.info(u"Saving XMLTV payload to file {}".format(output_file))
     try:
         with codecs.open(output_file, 'w', 'utf-8-sig') as xmltv_file:
             xmltv_file.write(xmltv)
-            print(u"Boom!")
+            logger.info(u"Boom!")
     except Exception:
-        print(u"Uh-oh!")
+        logger.error(u"Uh-oh! Something's happened ...")
         raise
 
 if __name__ == '__main__':
