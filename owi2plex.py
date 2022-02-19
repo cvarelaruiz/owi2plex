@@ -233,15 +233,15 @@ def parseSEP(text):
     if match:
         group_names = match.groupdict().keys()
         if 'S' in group_names:
-            S = '{}'.format(int(match.group('S')) if match.group('S') else '')
+            S = '{}'.format(int(match.group('S')) - 1 if match.group('S') else '')
         else:
-            S ='1'
+            S ='0'
         if 'E' in group_names:
-            E = '{}'.format(int(match.group('E')) if match.group('E') else '')
+            E = '{}'.format(int(match.group('E')) - 1 if match.group('E') else '')
             if E == '1' or E == '0':
                 is_premiere = True
         if 'P' in group_names:
-            P = '{}'.format(int(match.group('P')) if match.group('P') else '')
+            P = '{}'.format(int(match.group('P')) - 1 if match.group('P') else '')
     logger.debug("ParseSEP ==>{}: {}.{}.{}".format(is_a_match, S,E,P))    
     return is_a_match, '{}.{}.{}'.format(S, E, P), is_premiere
 
