@@ -19,7 +19,7 @@ setup(
         'requests==2.21.0',
         'lxml==4.3.2',
         'future==0.17.1',
-        'pyyaml==5.1.2'
+        'pyyaml==5.4'
     ],
     #python_requires='>=3.6',
     author='Cristian Varela',

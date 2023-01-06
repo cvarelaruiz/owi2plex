@@ -1,7 +1,7 @@
 click==7.0
 requests==2.21.0
 lxml==4.3.2
-pyyaml==5.1.2
+pyyaml==5.4
 
 # To upload packages to PyPi
 twine==1.13.0
