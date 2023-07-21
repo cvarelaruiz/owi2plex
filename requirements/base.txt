@@ -7,4 +7,4 @@ pyyaml==5.1.2
 twine==1.13.0
 
 # For compatibility with Python 2.7
-future==0.17.1
+future==0.18.3

@@ -18,7 +18,7 @@ setup(
         'click==7.0',
         'requests==2.21.0',
         'lxml==4.3.2',
-        'future==0.17.1',
+        'future==0.18.3',
         'pyyaml==5.1.2'
     ],
     #python_requires='>=3.6',
